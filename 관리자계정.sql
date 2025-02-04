@@ -29,5 +29,11 @@ GRANT CONNECT TO tjoeun;
 GRANT RESOURCE TO tjoeun;
 
 -- insert시 테이블 스페이스 users에 대한 권한이 없습니다.
-ALTER USER tjoeun defalut tablespace users quota umlimited on users;
+ALTER USER tjoeun default tablespace users quota unlimited on users;
 -- ALTER USER tjoeun quota 50M on user;
+
+-- workbook사용자 만들기
+ALTER SESSION SET "_oracle_script" = true;
+CREATE USER workbook IDENTIFIED BY 1234;
+GRANT CONNECT, RESOURCE TO workbook;
+ALTER USER workbook default tablespace users quota unlimited on users;
