@@ -236,7 +236,7 @@ SELECT TRUNC(123.789, -2) FROM DUAL;
 --                              <날짜 처리 함수>
 --==========================================================================
 /*
-    SYSDATE: 시스템ㄴ 날짜 및 시간 반환
+    SYSDATE: 시스템 날짜 및 시간 반환
 */
 SELECT SYSDATE FROM DUAL;
 -----------------------------------------------------------------------
@@ -494,23 +494,292 @@ SELECT *
 FROM EMPLOYEE
 WHERE FLOOR(MONTHS_BETWEEN(SYSDATE, HIRE_DATE) /12) >= 20;
 -- 6. EMPLOYEE 테이블에서 사원명, 급여 조회 (단, 급여는 '\9,000,000' 형식으로 표시)
-SELECT EMP_NAME, TO_CHAR(SALARY, 'L9,999,999')
+SELECT EMP_NAME, TO_CHAR(SALARY, 'L9,999,999') AS 급여
 FROM EMPLOYEE;
 -- 7. EMPLOYEE테이블에서 직원 명, 부서코드, 생년월일, 나이 조회
 --   (단, 생년월일은 주민번호에서 추출해서 00년 00월 00일로 출력되게 하며 
 --   나이는 주민번호에서 출력해서 날짜데이터로 변환한 다음 계산)
-
+SELECT EMP_NAME, DEPT_CODE,
+SUBSTR(EMP_NO, 1, 2) || '년' ||
+SUBSTR(EMP_NO, 3, 2) || '월' ||
+SUBSTR(EMP_NO, 5, 2) || '일' AS 생년월일,
+TO_CHAR(SYSDATE, 'YYYY') -
+(CASE WHEN TO_NUMBER(SUBSTR(EMP_NO, 1, 2)) <= TO_NUMBER(TO_CHAR(SYSDATE, 'YY')) 
+    THEN 2000 + TO_NUMBER(SUBSTR(EMP_NO, 1, 2)) 
+    ELSE 1900 + TO_NUMBER(SUBSTR(EMP_NO, 1, 2)) 
+    END) AS 나이
+FROM EMPLOYEE;
 -- 8. EMPLOYEE테이블에서 부서코드가 D5, D6, D9인 사원만 조회하되 D5면 총무부
 --   , D6면 기획부, D9면 영업부로 처리(EMP_ID, EMP_NAME, DEPT_CODE, 총무부)
 --    (단, 부서코드 오름차순으로 정렬)
-
+SELECT EMP_ID, EMP_NAME, DEPT_CODE,
+CASE WHEN DEPT_CODE = 'D5' THEN '총무부'
+    WHEN DEPT_CODE = 'D6' THEN '기획부'
+    WHEN DEPT_CODE = 'D9' THEN '영업부'
+        END AS 부서
+FROM EMPLOYEE
+WHERE DEPT_CODE IN('D5','D6','D9')
+ORDER BY DEPT_CODE;
 -- 9. EMPLOYEE테이블에서 사번이 201번인 사원명, 주민번호 앞자리, 주민번호 뒷자리, 
 --    주민번호 앞자리와 뒷자리의 합 조회
-
+SELECT EMP_NAME, SUBSTR(EMP_NO, 1, 6) AS "주민번호 앞자리", SUBSTR(EMP_NO, 8, 16) AS "주민번호 뒷자리",
+SUBSTR(EMP_NO, 1, 6) + SUBSTR(EMP_NO, 8, 16) AS 합
+FROM EMPLOYEE
+WHERE EMP_ID = 201;
 -- 10. EMPLOYEE테이블에서 부서코드가 D5인 직원의 보너스 포함 연봉 합 조회
-
+SELECT SALARY*NVL(1+BONUS, 1)*12
+FROM EMPLOYEE
+WHERE DEPT_CODE = 'D5';
 -- 11. EMPLOYEE테이블에서 직원들의 입사일로부터 년도만 가지고 각 년도별 입사 인원수 조회
 --      전체 직원 수, 2001년, 2002년, 2003년, 2004년
+SELECT TO_CHAR(HIRE_DATE, 'YYYY') AS 입사년도, COUNT(*) AS 입사인원
+FROM EMPLOYEE
+GROUP BY TO_CHAR(HIRE_DATE, 'YYYY')
+ORDER BY 입사년도;
+---------------------------------------------------------------------------------------------------------
+/*
+    * NULLIF(비교대상1, 비교대상2)
+      - 두개의 값이 일치하면 NULL반환
+      - 두개의 값이 일치하지 않으면 비교대상1의 값 반환
+*/
+SELECT NULLIF('123','123') FROM DUAL;
+SELECT NULLIF('123','345') FROM DUAL;
+--====================================================================
+--                      <선택 함수>
+--====================================================================
+/*
+    DECODE(비교하고자하는 대상(컬럼|산술연산|함수식), 비교값1, 결과값1, 비교값2, 결과값2 ...)
+    
+    switch(비교대상) {
+        case 비교값1:
+         결과값1;
+         break;
+        case 비교값2:
+         결과값2;
+    }
+*/
+
+-- 사번, 사원명, 주민번호, 성별(남, 여)
+SELECT EMP_ID, EMP_NAME, EMP_NO, DECODE(SUBSTR(EMP_NO, 8, 1), '1', '남', '2', '여', '3', '남', '4', '여') AS 성별
+FROM EMPLOYEE;
+
+-- 사원명, 직급코드, 기존급여, 인상된급여
+/*
+    J7: 급여의 10%인상 (SALARY*1.1)
+    J6: 급여의 15%인상 (SALARY*1.15)
+    J5: 급여의 20%인상 (SALARY*1.2)
+    그외: 급여의 5% 인상 (SALARY*1.05)
+*/
+SELECT EMP_NAME, JOB_CODE, SALARY,
+DECODE(JOB_CODE, 'J7', SALARY * 1.1,
+                'J6', SALARY * 1.15,
+                'J5', SALARY * 1.2,
+                    SALARY * 1.05) AS "인상된 급여"
+FROM EMPLOYEE;
+-----------------------------------------------------------------------------TTTTTTTTTT
+/*
+    CASE WHEN THEN
+    END
+    
+    CASE WHEN 조건식1 THEN 결과값1
+        WHEN 조건식2 THEN 결과값2
+        ...
+        
+    IF(조건식)(조건이 참일때 실행)
+    ELSE IF(조건식)(조건이 참일때 실행)
+    ELSE IF(조건식)(조건이 참일때 실행)
+    ...ELSE
+    
+    ELSE(실행문)
+*/
+
+-- 사원명, 급여,(급여에 따른 등급(5백만원 이상이면 '고급 5백~3백 '중급' 나머지 초급))
+SELECT EMP_NAME,SALAT,
+        CASE WHEN SALARY >= 5000000 THEN '고급'
+        CASE WHEN SALARY >= 3000000 THEN '고급'
+        ELSE '초급'
+        END 등급
+FROM EMPLOYEE;
+
+--==============================================================
+--                        <그룹 함수>
+--==============================================================
+/*
+    * SUM(숫자타입의 컬럼) : 해당 컬럼 값들의 총 합계를 반환해주는 함수
+*/
+-- 전사원의 총 급여의 합
+SELECT SUM(SALARY) "총급여 합"
+FROM EMPLOYEE;
+
+-- 남자사원의 총 급여의 합
+SELECT SUM(SALARY) "남자사원의 급여합"
+FROM EMPLOYEE
+-- WHERE SUBSTR(EMP_NO, 8, 1) = '1' OR SUBSTR(EMP_NO, 8, 1) = '3';
+WHERE SUBSTR(EMP_NO, 8, 1) IN ('1','3');
+
+-- 부서코드가 D5인 사원의 연봉의 총합
+SELECT SUM(SALARY*12)
+FROM EMPLOYEE
+WHERE DEPT_CODE = 'D5';
+
+-- 부서코드가 D5인 사원의 보너스를 포함한 연봉의 총합
+SELECT SUM(SALARY*NVL(1+BONUS,1)*12) "보너스포함 연봉의 합"
+FROM EMPLOYEE
+WHERE DEPT_CODE = 'D5';
+
+-- 전사원의 총 급여의 합 형식 \000,000,000
+SELECT TO_CHAR(SUM(SALARY), 'L999,999,999') "총급여 합"
+FROM EMPLOYEE;
+
+---------------------------------------------------------------------------------------------------------
+/*
+    * AVG(숫자타입의 컬럼) : 해당 컬럼값의 평균을 반환해 주는 함수
+*/
+-- 전체사원의 급여의 평균
+SELECT AVG(SALARY)
+FROM EMPLOYEE;
+
+SELECT ROUND(AVG(SALARY))
+FROM EMPLOYEE;
+
+SELECT ROUND(AVG(SALARY), 2)
+FROM EMPLOYEE;
+
+---------------------------------------------------------------------------------------------------------
+/*
+    * MIN(모든타입의 컬럼) : 해당 컬럼값들 중 가장 작은값을 반환해 주는 함수
+    * MAX(모든타입의 컬럼) : 해당 컬럼값들 중 가장 큰값을 반환해 주는 함수
+*/
+
+SELECT MIN(EMP_NAME), MIN(SALARY), MIN(HIRE_DATE)
+FROM EMPLOYEE;
+
+SELECT MAX(EMP_NAME), MAX(SALARY), MAX(HIRE_DATE)
+FROM EMPLOYEE;
+----------------------------------------------------------------------
+/*
+    COUNT(*|컬럼|DISTINCT 컬럼): 행 갯수 변환
+    
+    COUNT(*): 조회된 결과의 모든 행의 개수 반환
+    COUNT(컬럼): 컬럼의 NULL값을 제외한 행의 갯수 반환
+    COUNT(DISTINCT 컬럼): 컬럼값에서 중복을 제거한 행의 갯수 반환
+*/
+-- 전체 사원의 수
+SELECT COUNT(*)
+FROM EMPLOYEE;
+
+-- 여자 사원의 수
+SELECT COUNT(*)
+FROM EMPLOYEE
+WHERE SUBSTR(EMP_NO, 8, 1) IN ('2', '4');
+
+-- 보너스를 받는 사원의 수
+SELECT COUNT(BONUS)
+FROM EMPLOYEE;
+
+-- 현재 사원들이 총 몇개의 부서에 분포되어 있는지(중복제외)
+SELECT COUNT(DISTINCT DEPT_CODE)
+FROM EMPLOYEE;
+----------------------------------------------------------------------
+--03.4.문제2_SCOTT_문제
+--SCOTT_연습문제
+SELECT * FROM EMPLOYEE;
+--1. EMP테이블에서 COMM 의 값이 NULL이 아닌 정보 조회
+SELECT *
+FROM EMPLOYEE
+WHERE BONUS IS NOT NULL;
+--2. EMP테이블에서 커미션을 받지 못하는 직원 조회
+SELECT EMP_NAME
+FROM EMPLOYEE
+WHERE BONUS IS NULL;
+--3. EMP테이블에서 관리자가 없는 직원 정보 조회
+SELECT *
+FROM EMPLOYEE
+WHERE MANAGER_ID IS NULL;
+--4. EMP테이블에서 급여를 많이 받는 직원 순으로 조회
+SELECT EMP_NAME
+FROM EMPLOYEE
+ORDER BY SALARY DESC;
+--5. EMP테이블에서 급여가 같을 경우 커미션을 내림차순 정렬 조회
+SELECT * 
+FROM EMPLOYEE
+ORDER BY SALARY ASC, BONUS DESC;
+--6. EMP테이블에서 사원번호, 사원명,직급, 입사일 조회 (단, 입사일을 오름차순 정렬 처리)
+SELECT EMP_ID, EMP_NAME, JOB_CODE, HIRE_DATE
+FROM EMPLOYEE
+ORDER BY HIRE_DATE;
+--7. EMP테이블에서 사원번호, 사원명 조회 (사원번호 기준 내림차순 정렬)
+SELECT EMP_ID, EMP_NAME
+FROM EMPLOYEE
+ORDER BY EMP_ID DESC;
+--8. EMP테이블에서 사번, 입사일, 사원명, 급여 조회 
+--  (부서번호가 빠른 순으로, 같은 부서번호일 때는 최근 입사일 순으로 처리)
+SELECT EMP_ID, HIRE_DATE, EMP_NAME, SALARY
+FROM EMPLOYEE
+ORDER BY DEPT_CODE ASC, HIRE_DATE DESC;
+--9. 오늘 날짜에 대한 정보 조회
+SELECT SYSDATE FROM DUAL;
+--10. EMP테이블에서 사번, 사원명, 급여 조회 
+--   (단, 급여는 100단위까지의 값만 출력 처리하고 급여 기준 내림차순 정렬)
+SELECT EMP_ID, EMP_NAME, FLOOR(SALARY / 100) * 100 AS ROUND_SALARY
+FROM EMPLOYEE
+ORDER BY SALARY DESC;
+--11. EMP테이블에서 사원번호가 홀수인 사원들을 조회
+SELECT *
+FROM EMPLOYEE
+WHERE MOD(EMP_ID, 2) = 1;
+--12. EMP테이블에서 사원명, 입사일 조회 (단, 입사일은 년도와 월을 분리 추출해서 출력)
+SELECT EMP_NAME,
+TO_CHAR(HIRE_DATE, 'YYYY') || '년' ||
+TO_CHAR(HIRE_DATE, 'MM') || '월' AS 입사일
+FROM EMPLOYEE;
+--13. EMP테이블에서 9월에 입사한 직원의 정보 조회
+SELECT *
+FROM EMPLOYEE
+WHERE TO_CHAR(HIRE_DATE, 'MM') = '09';
+--14. EMP테이블에서 81년도에 입사한 직원 조회
+SELECT *
+FROM EMPLOYEE
+WHERE TO_CHAR(HIRE_DATE, 'YYYY') = '1981';
+--15. EMP테이블에서 이름이 'E'로 끝나는 직원 조회
+SELECT *
+FROM EMPLOYEE
+WHERE EMP_NAME LIKE '%E';
+--16. EMP테이블에서 이름의 세 번째 글자가 'R'인 직원의 정보 조회
+--	16-1. LIKE 사용
+SELECT *
+FROM EMPLOYEE
+WHERE EMP_NAME LIKE '__%R';
+--	16-2. SUBSTR() 함수 사용
+SELECT *
+FROM EMPLOYEE
+WHERE SUBSTR(EMP_NAME, 3, 1) = 'R';
+--17. EMP테이블에서 사번, 사원명, 입사일, 입사일로부터 40년 되는 날짜 조회
+SELECT EMP_ID, EMP_NAME, HIRE_DATE, ADD_MONTHS(HIRE_DATE, 40 * 12)
+FROM EMPLOYEE;
+--18. EMP테이블에서 입사일로부터 38년 이상 근무한 직원의 정보 조회
+SELECT * 
+FROM EMPLOYEE
+WHERE ADD_MONTHS(HIRE_DATE, 38 * 12) <= SYSDATE;
+--19. 오늘 날짜에서 년도만 추출
+SELECT TO_CHAR(SYSDATE, 'YYYY') AS "현재 연도"
+FROM DUAL;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
