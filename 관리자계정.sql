@@ -43,3 +43,25 @@ ALTER SESSION SET "_oracle_script" = true;
 CREATE USER ddl IDENTIFIED BY 1234;
 GRANT CONNECT, RESOURCE TO ddl;
 ALTER USER ddl default tablespace users quota unlimited on users;
+
+
+
+ALTER SESSION SET "_oracle_script" = true;
+CREATE USER jsp IDENTIFIED BY 1234;
+GRANT CONNECT, RESOURCE TO jsp;
+ALTER USER jsp default tablespace users quota unlimited on users;
+
+ALTER SESSION SET "_oracle_script" = true;
+CREATE USER mybatis IDENTIFIED BY 1234;
+GRANT CONNECT, RESOURCE TO mybatis;
+ALTER USER mybatis default tablespace users quota unlimited on users;
+
+ALTER SESSION SET "_oracle_script" = true;
+CREATE USER springboot IDENTIFIED BY 1234;
+GRANT CONNECT, RESOURCE TO springboot;
+ALTER USER springboot default tablespace users quota unlimited on users;
+
+ALTER SESSION SET "_oracle_script" = true;
+CREATE USER semi IDENTIFIED BY 1234;
+GRANT CONNECT, RESOURCE TO semi;
+ALTER USER semi default tablespadce users quota unlimited on users;

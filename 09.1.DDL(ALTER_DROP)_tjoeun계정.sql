@@ -112,3 +112,5 @@ ALTER TABLE DEPT_COPY RENAME TO DEPT_TEST;
       * 방법2 : 부모테이블만 삭제하는데 제약조건을 같이 삭제하는 방법
                     DROP TABLE 부모테이블명 CASCADE CONSTRAINT;
  */
+ 
+ 
